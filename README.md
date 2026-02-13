@@ -12,6 +12,15 @@ Craft.do API 的命令行工具，专为 AI Agent 和自动化脚本设计。
 
 ## 安装
 
+### Homebrew (推荐)
+
+```bash
+brew tap susuyan/craft-cli
+brew install craft-cli
+```
+
+### 从源码编译
+
 ```bash
 cargo build --release
 # 二进制文件在 target/release/craft-cli

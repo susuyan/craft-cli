@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "craft-cli")]
 #[command(about = "Craft.do API CLI for Agents")]
-#[command(version = "0.1.0")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 pub struct Cli {
     /// API endpoint URL (or CRAFT_API_URL env)
     #[arg(long, env = "CRAFT_API_URL")]
