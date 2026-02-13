@@ -77,20 +77,20 @@ jobs:
         X86_64_SHA=$(shasum -a 256 craft-cli-x86_64.tar.gz | cut -d ' ' -f 1)
         VERSION=${{ github.ref_name }}
 
-        cat > craft-cli.rb << EOF
+        cat > craft-cli.rb << 'FORMULA_EOF'
 class CraftCli < Formula
   desc "Craft.do API CLI for AI Agents"
   homepage "https://github.com/susuyan/craft-cli"
-  version "${VERSION#v}"
+  version "VERSION_PLACEHOLDER"
 
   on_arm do
-    url "https://github.com/susuyan/craft-cli/releases/download/${VERSION}/craft-cli-${VERSION}-arm64-apple-darwin.tar.gz"
-    sha256 "$ARM64_SHA"
+    url "https://github.com/susuyan/craft-cli/releases/download/VERSION_PLACEHOLDER/craft-cli-VERSION_PLACEHOLDER-arm64-apple-darwin.tar.gz"
+    sha256 "ARM64_SHA_PLACEHOLDER"
   end
 
   on_intel do
-    url "https://github.com/susuyan/craft-cli/releases/download/${VERSION}/craft-cli-${VERSION}-x86_64-apple-darwin.tar.gz"
-    sha256 "$X86_64_SHA"
+    url "https://github.com/susuyan/craft-cli/releases/download/VERSION_PLACEHOLDER/craft-cli-VERSION_PLACEHOLDER-x86_64-apple-darwin.tar.gz"
+    sha256 "X86_64_SHA_PLACEHOLDER"
   end
 
   def install
@@ -101,7 +101,12 @@ class CraftCli < Formula
     system "#{bin}/craft-cli", "--version"
   end
 end
-EOF
+FORMULA_EOF
+
+        # Replace placeholders with actual values
+        sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" craft-cli.rb
+        sed -i "s/ARM64_SHA_PLACEHOLDER/${ARM64_SHA}/g" craft-cli.rb
+        sed -i "s/X86_64_SHA_PLACEHOLDER/${X86_64_SHA}/g" craft-cli.rb
 
     - name: Commit and push
       run: |
