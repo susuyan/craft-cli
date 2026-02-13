@@ -24,7 +24,7 @@ Command-line tool for Craft.do API, designed for AI Agents and automation script
 #### Homebrew (Recommended)
 
 ```bash
-brew tap susuyan/craft-cli
+brew tap susuyan/susuyan
 brew install craft-cli
 ```
 
@@ -111,7 +111,7 @@ Craft.do API 的命令行工具，专为 AI Agent 和自动化脚本设计。
 #### Homebrew (推荐)
 
 ```bash
-brew tap susuyan/craft-cli
+brew tap susuyan/susuyan
 brew install craft-cli
 ```
 

@@ -63,7 +63,7 @@ jobs:
     - name: Checkout homebrew tap
       uses: actions/checkout@v4
       with:
-        repository: susuyan/homebrew-craft-cli
+        repository: susuyan/homebrew-susuyan
         token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
     - name: Download release assets
