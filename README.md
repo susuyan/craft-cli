@@ -1,8 +1,104 @@
 # craft-cli
 
+<p align="center">
+  <a href="#english">English</a> | <a href="#chinese">中文</a>
+</p>
+
+---
+
+<a name="english"></a>
+## English
+
+Command-line tool for Craft.do API, designed for AI Agents and automation scripts.
+
+### Features
+
+- **JSON-first**: All input/output is structured JSON
+- **Stateless**: Each call is independent, no session dependency
+- **Pipe-friendly**: Supports stdin input, stdout output
+- **Multi-connection**: One CLI manages multiple API endpoints
+- **Debug support**: `--verbose` flag for detailed logging
+
+### Installation
+
+#### Homebrew (Recommended)
+
+```bash
+brew tap susuyan/craft-cli
+brew install craft-cli
+```
+
+#### Build from Source
+
+```bash
+cargo build --release
+# Binary at target/release/craft-cli
+```
+
+### Quick Start
+
+```bash
+# Initialize config
+craft-cli config init
+
+# Add API connection
+craft-cli config add daily "https://connect.craft.do/links/XXXX/api/v1"
+
+# Set default connection
+craft-cli config default daily
+
+# Get today's note
+craft-cli blocks get --date today
+
+# Insert content
+echo "## New Note" | craft-cli blocks insert --date today --stdin
+```
+
+### Global Options
+
+```
+--url <URL>      API endpoint URL (or CRAFT_API_URL env var)
+--key <KEY>      API key (or CRAFT_API_KEY env var)
+--config <PATH>  Config file path
+--conn <NAME>    Select connection from config
+--verbose, -v    Enable debug logging
+--help, -h       Show help
+--version, -V    Show version
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `config` | Configuration management |
+| `blocks` | Block operations (get, insert, update, delete, move, search) |
+| `tasks` | Task management (list, add, update, done, delete) |
+| `search` | Global search |
+| `collections` | Collection operations |
+| `upload` | File upload |
+| `connection` | Connection info |
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | API error |
+| 2 | Config error |
+| 3 | Argument error |
+| 4 | IO error |
+| 5 | Parse error |
+| 6 | JSON error |
+| 10 | Network error |
+
+---
+
+<a name="chinese"></a>
+## 中文
+
 Craft.do API 的命令行工具，专为 AI Agent 和自动化脚本设计。
 
-## 特性
+### 特性
 
 - **JSON 优先**: 所有输入输出均为结构化 JSON
 - **无状态**: 每次调用独立完成，不依赖会话
@@ -10,61 +106,42 @@ Craft.do API 的命令行工具，专为 AI Agent 和自动化脚本设计。
 - **多连接**: 一个 CLI 管理多个 API 端点
 - **调试支持**: `--verbose` 参数输出详细日志
 
-## 安装
+### 安装
 
-### Homebrew (推荐)
+#### Homebrew (推荐)
 
 ```bash
 brew tap susuyan/craft-cli
 brew install craft-cli
 ```
 
-### 从源码编译
+#### 从源码编译
 
 ```bash
 cargo build --release
 # 二进制文件在 target/release/craft-cli
 ```
 
-## 快速开始
-
-### 1. 初始化配置
+### 快速开始
 
 ```bash
+# 初始化配置
 craft-cli config init
-```
 
-### 2. 添加 API 连接
-
-```bash
-# 公开访问（Token 在 URL 中）
+# 添加 API 连接
 craft-cli config add daily "https://connect.craft.do/links/XXXX/api/v1"
 
-# 密钥访问
-craft-cli config add secure "https://connect.craft.do/links/YYYY/api/v1" \
-  --key "your-secret-key"
-```
-
-### 3. 设置默认连接
-
-```bash
+# 设置默认连接
 craft-cli config default daily
-```
 
-### 4. 开始使用
-
-```bash
 # 获取今日笔记
 craft-cli blocks get --date today
 
 # 插入内容
 echo "## 新笔记" | craft-cli blocks insert --date today --stdin
-
-# 搜索内容
-craft-cli search "关键词"
 ```
 
-## 全局选项
+### 全局选项
 
 ```
 --url <URL>      API 端点 URL（或 CRAFT_API_URL 环境变量）
@@ -76,9 +153,9 @@ craft-cli search "关键词"
 --version, -V    显示版本信息
 ```
 
-## 命令参考
+### 命令参考
 
-### config - 配置管理
+#### config - 配置管理
 
 ```bash
 craft-cli config init                          # 初始化配置文件
@@ -88,7 +165,7 @@ craft-cli config list                          # 列出所有连接
 craft-cli config default <name>                # 设置默认连接
 ```
 
-### blocks - 块操作
+#### blocks - 块操作
 
 ```bash
 # 获取块内容
@@ -110,7 +187,7 @@ craft-cli blocks move <id>... [--date <d>] [--page-id <id>] [--pos start|end]
 craft-cli blocks search <pattern> [--date <d>] [--case-sensitive]
 ```
 
-### tasks - 任务管理
+#### tasks - 任务管理
 
 ```bash
 # 列出任务
@@ -129,13 +206,13 @@ craft-cli tasks done <id>...
 craft-cli tasks delete <id>...
 ```
 
-### search - 全局搜索
+#### search - 全局搜索
 
 ```bash
 craft-cli search <query> [--from <d>] [--to <d>] [--regex]
 ```
 
-### collections - 集合操作
+#### collections - 集合操作
 
 ```bash
 craft-cli collections list [--from <d>] [--to <d>]
@@ -146,21 +223,21 @@ craft-cli collections update-item <id> <item-id> [--prop key=val]...
 craft-cli collections delete-item <id> <item-id>...
 ```
 
-### upload - 文件上传
+#### upload - 文件上传
 
 ```bash
 craft-cli upload <file> [--date <d>] [--page-id <id>] [--pos start|end]
 ```
 
-### connection - 连接信息
+#### connection - 连接信息
 
 ```bash
 craft-cli connection info
 ```
 
-## 使用示例
+### 使用示例
 
-### 日常笔记工作流
+#### 日常笔记工作流
 
 ```bash
 # 获取今日笔记内容
@@ -179,7 +256,7 @@ EOF
 craft-cli tasks done "task-id-1" "task-id-2"
 ```
 
-### 自动化脚本
+#### 自动化脚本
 
 ```bash
 #!/bin/bash
@@ -202,14 +279,14 @@ $(echo "$TASKS" | jq -r '.items[].markdown')
 EOF
 ```
 
-### 带调试输出
+#### 带调试输出
 
 ```bash
 # 启用详细日志
 craft-cli --verbose --conn test blocks get --date today
 ```
 
-## 配置文件
+### 配置文件
 
 配置文件位置:
 - macOS: `~/Library/Application Support/craft-cli/config.toml`
@@ -228,7 +305,7 @@ url = "https://connect.craft.do/links/YYYY/api/v1"
 secret_key = "your-secret-key"
 ```
 
-## 退出码
+### 退出码
 
 | 码 | 含义 |
 |----|------|
@@ -241,7 +318,7 @@ secret_key = "your-secret-key"
 | 6 | JSON 错误 |
 | 10 | 网络错误 |
 
-## 开发
+### 开发
 
 ```bash
 # 构建
@@ -254,6 +331,8 @@ cargo test
 cargo run -- --verbose connection info
 ```
 
-## 许可证
+---
+
+## License / 许可证
 
 MIT
