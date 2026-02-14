@@ -16,7 +16,7 @@ Command-line tool for Craft.do API, designed for AI Agents and automation script
 - **JSON-first**: All input/output is structured JSON
 - **Stateless**: Each call is independent, no session dependency
 - **Pipe-friendly**: Supports stdin input, stdout output
-- **Multi-connection**: One CLI manages multiple API endpoints
+- **Multi-API**: JSON config manages multiple API endpoints
 - **Debug support**: `--verbose` flag for detailed logging
 
 ### Installation
@@ -41,11 +41,11 @@ cargo build --release
 # Initialize config
 craft-cli config init
 
-# Add API connection
-craft-cli config add daily "https://connect.craft.do/links/XXXX/api/v1"
+# Add API
+craft-cli config add work --api "https://connect.craft.do/links/XXXX/api/v1" --key "your-key"
 
-# Set default connection
-craft-cli config default daily
+# Set current API
+craft-cli config use work
 
 # Get today's note
 craft-cli blocks get --date today
@@ -57,10 +57,9 @@ echo "## New Note" | craft-cli blocks insert --date today --stdin
 ### Global Options
 
 ```
---url <URL>      API endpoint URL (or CRAFT_API_URL env var)
---key <KEY>      API key (or CRAFT_API_KEY env var)
+--api <URL>      API endpoint URL (or CRAFT_API env var)
+--key <KEY>      API key (or CRAFT_KEY env var)
 --config <PATH>  Config file path
---conn <NAME>    Select connection from config
 --verbose, -v    Enable debug logging
 --help, -h       Show help
 --version, -V    Show version
@@ -103,7 +102,7 @@ Craft.do API 的命令行工具，专为 AI Agent 和自动化脚本设计。
 - **JSON 优先**: 所有输入输出均为结构化 JSON
 - **无状态**: 每次调用独立完成，不依赖会话
 - **管道友好**: 支持 stdin 输入、stdout 输出
-- **多连接**: 一个 CLI 管理多个 API 端点
+- **多 API 管理**: JSON 配置文件管理多个 API 端点
 - **调试支持**: `--verbose` 参数输出详细日志
 
 ### 安装
@@ -128,11 +127,11 @@ cargo build --release
 # 初始化配置
 craft-cli config init
 
-# 添加 API 连接
-craft-cli config add daily "https://connect.craft.do/links/XXXX/api/v1"
+# 添加 API
+craft-cli config add work --api "https://connect.craft.do/links/XXXX/api/v1" --key "your-key"
 
-# 设置默认连接
-craft-cli config default daily
+# 设置当前 API
+craft-cli config use work
 
 # 获取今日笔记
 craft-cli blocks get --date today
@@ -144,10 +143,9 @@ echo "## 新笔记" | craft-cli blocks insert --date today --stdin
 ### 全局选项
 
 ```
---url <URL>      API 端点 URL（或 CRAFT_API_URL 环境变量）
---key <KEY>      API 密钥（或 CRAFT_API_KEY 环境变量）
+--api <URL>      API 端点 URL（或 CRAFT_API 环境变量）
+--key <KEY>      API 密钥（或 CRAFT_KEY 环境变量）
 --config <PATH>  指定配置文件路径
---conn <NAME>    选择配置文件中的连接名
 --verbose, -v    启用调试日志输出
 --help, -h       显示帮助信息
 --version, -V    显示版本信息
@@ -158,11 +156,11 @@ echo "## 新笔记" | craft-cli blocks insert --date today --stdin
 #### config - 配置管理
 
 ```bash
-craft-cli config init                          # 初始化配置文件
-craft-cli config add <name> <url> [--key <key>]  # 添加连接
-craft-cli config remove <name>                 # 删除连接
-craft-cli config list                          # 列出所有连接
-craft-cli config default <name>                # 设置默认连接
+craft-cli config init                                    # 初始化配置文件
+craft-cli config add <name> --api <url> --key <key>      # 添加 API
+craft-cli config remove <name>                           # 删除 API
+craft-cli config list                                    # 列出所有 API
+craft-cli config use <name>                              # 设置当前 API
 ```
 
 #### blocks - 块操作
@@ -262,7 +260,8 @@ craft-cli tasks done "task-id-1" "task-id-2"
 #!/bin/bash
 # daily-sync.sh - 每日笔记同步
 
-export CRAFT_API_URL="https://connect.craft.do/links/XXXX/api/v1"
+export CRAFT_API="https://connect.craft.do/links/XXXX/api/v1"
+export CRAFT_KEY="your-key"
 
 # 获取今日任务
 TASKS=$(craft-cli tasks list active)
@@ -283,27 +282,34 @@ EOF
 
 ```bash
 # 启用详细日志
-craft-cli --verbose --conn test blocks get --date today
+craft-cli --verbose --api <url> --key <key> blocks get --date today
 ```
 
 ### 配置文件
 
 配置文件位置:
-- macOS: `~/Library/Application Support/craft-cli/config.toml`
-- Linux: `~/.config/craft-cli/config.toml`
+- macOS: `~/Library/Application Support/craft-cli/config.json`
+- Linux: `~/.config/craft-cli/config.json`
 
 示例配置:
 
-```toml
-default = "daily"
-
-[connections.daily]
-url = "https://connect.craft.do/links/XXXX/api/v1"
-
-[connections.work]
-url = "https://connect.craft.do/links/YYYY/api/v1"
-secret_key = "your-secret-key"
+```json
+{
+  "current": "daily",
+  "apis": {
+    "daily": {
+      "api": "https://connect.craft.do/links/XXXX/api/v1",
+      "key": "your-key"
+    },
+    "work": {
+      "api": "https://connect.craft.do/links/YYYY/api/v1",
+      "key": "your-key"
+    }
+  }
+}
 ```
+
+**Agent 切换 API**: Agent 可以直接修改 JSON 文件的 `current` 字段来切换 API，无需调用 CLI 命令。
 
 ### 退出码
 

@@ -6,27 +6,15 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Connection {
-    pub url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub secret_key: Option<String>,
+pub struct ApiEntry {
+    pub api: String,
+    pub key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigFile {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default: Option<String>,
-    #[serde(default)]
-    pub connections: HashMap<String, Connection>,
-}
-
-impl Default for ConfigFile {
-    fn default() -> Self {
-        Self {
-            default: None,
-            connections: HashMap::new(),
-        }
-    }
+    pub current: String,
+    pub apis: HashMap<String, ApiEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,16 +32,16 @@ pub fn find_config_file(specified: Option<&PathBuf>) -> Option<PathBuf> {
         }
     }
 
-    // 2. Current directory: ./craft-cli.toml
+    // 2. Current directory: ./craft-cli.json
     let current_dir = env::current_dir().ok()?;
-    let local_config = current_dir.join("craft-cli.toml");
+    let local_config = current_dir.join("craft-cli.json");
     if local_config.exists() {
         return Some(local_config);
     }
 
-    // 3. User config directory: ~/.config/craft-cli/config.toml
+    // 3. User config directory: ~/.config/craft-cli/config.json
     if let Some(config_dir) = directories::ProjectDirs::from("", "", "craft-cli") {
-        let user_config = config_dir.config_dir().join("config.toml");
+        let user_config = config_dir.config_dir().join("config.json");
         if user_config.exists() {
             return Some(user_config);
         }
@@ -67,7 +55,7 @@ pub fn load_config_file(path: &Path) -> Result<ConfigFile> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| CliError::Config(format!("Failed to read config file: {}", e)))?;
 
-    let config: ConfigFile = toml::from_str(&content)
+    let config: ConfigFile = serde_json::from_str(&content)
         .map_err(|e| CliError::Config(format!("Failed to parse config file: {}", e)))?;
 
     Ok(config)
@@ -75,7 +63,7 @@ pub fn load_config_file(path: &Path) -> Result<ConfigFile> {
 
 /// Save config to file
 pub fn save_config_file(path: &Path, config: &ConfigFile) -> Result<()> {
-    let content = toml::to_string_pretty(config)
+    let content = serde_json::to_string_pretty(config)
         .map_err(|e| CliError::Config(format!("Failed to serialize config: {}", e)))?;
 
     // Ensure parent directory exists
@@ -95,49 +83,44 @@ pub fn default_config_path() -> Result<PathBuf> {
     let config_dir = directories::ProjectDirs::from("", "", "craft-cli")
         .ok_or_else(|| CliError::Config("Cannot determine config directory".to_string()))?;
 
-    Ok(config_dir.config_dir().join("config.toml"))
+    Ok(config_dir.config_dir().join("config.json"))
 }
 
 /// Resolve connection from CLI args, env vars, or config file
 pub fn resolve_connection(cli: &Cli) -> Result<ResolvedConnection> {
-    // Priority 1: --url parameter
-    if let Some(url) = &cli.url {
+    // Priority 1: --api and --key parameters
+    if let (Some(api), Some(key)) = (&cli.api, &cli.key) {
         return Ok(ResolvedConnection {
-            url: url.clone(),
-            secret_key: cli.key.clone(),
+            url: api.clone(),
+            secret_key: Some(key.clone()),
         });
     }
 
-    // Priority 2: CRAFT_API_URL env var
-    if let Ok(url) = env::var("CRAFT_API_URL") {
-        let key = cli.key.clone().or_else(|| env::var("CRAFT_API_KEY").ok());
-        return Ok(ResolvedConnection { url, secret_key: key });
+    // Priority 2: CRAFT_API and CRAFT_KEY env vars
+    if let (Ok(api), Ok(key)) = (env::var("CRAFT_API"), env::var("CRAFT_KEY")) {
+        return Ok(ResolvedConnection {
+            url: api,
+            secret_key: Some(key),
+        });
     }
 
-    // Priority 3: Config file
+    // Priority 3: Config file (read current API)
     if let Some(config_path) = find_config_file(cli.config.as_ref()) {
         let config = load_config_file(&config_path)?;
 
-        // Select connection name
-        let conn_name = cli.conn.as_ref()
-            .or(config.default.as_ref())
+        let entry = config.apis.get(&config.current)
             .ok_or_else(|| CliError::Config(
-                "No connection specified. Use --conn, set default in config, or use --url/CRAFT_API_URL".to_string()
-            ))?;
-
-        let connection = config.connections.get(conn_name)
-            .ok_or_else(|| CliError::Config(
-                format!("Connection '{}' not found in config file", conn_name)
+                format!("Current API '{}' not found in config file", config.current)
             ))?;
 
         return Ok(ResolvedConnection {
-            url: connection.url.clone(),
-            secret_key: connection.secret_key.clone().or_else(|| cli.key.clone()),
+            url: entry.api.clone(),
+            secret_key: Some(entry.key.clone()),
         });
     }
 
     Err(CliError::Config(
-        "No API URL configured. Use --url, CRAFT_API_URL env, or create a config file".to_string()
+        "No API configured. Use --api/--key, CRAFT_API/CRAFT_KEY env, or create a config file".to_string()
     ))
 }
 
@@ -149,52 +132,60 @@ pub fn init_config() -> Result<PathBuf> {
         return Ok(path); // Already exists, skip
     }
 
-    let config = ConfigFile::default();
+    let config = ConfigFile {
+        current: "default".to_string(),
+        apis: HashMap::new(),
+    };
     save_config_file(&path, &config)?;
 
     Ok(path)
 }
 
-/// Add connection to config
-pub fn add_connection(name: &str, url: &str, key: Option<&str>) -> Result<()> {
+/// Add API to config
+pub fn add_api(name: &str, api: &str, key: &str) -> Result<()> {
     let path = default_config_path()?;
 
     let mut config = if path.exists() {
         load_config_file(&path)?
     } else {
-        ConfigFile::default()
+        ConfigFile {
+            current: name.to_string(),
+            apis: HashMap::new(),
+        }
     };
 
-    config.connections.insert(name.to_string(), Connection {
-        url: url.to_string(),
-        secret_key: key.map(|s| s.to_string()),
+    config.apis.insert(name.to_string(), ApiEntry {
+        api: api.to_string(),
+        key: key.to_string(),
     });
 
     save_config_file(&path, &config)?;
     Ok(())
 }
 
-/// Remove connection from config
-pub fn remove_connection(name: &str) -> Result<()> {
+/// Remove API from config
+pub fn remove_api(name: &str) -> Result<()> {
     let path = default_config_path()?;
 
     let mut config = load_config_file(&path)?;
 
-    if config.connections.remove(name).is_none() {
-        return Err(CliError::Config(format!("Connection '{}' not found", name)));
+    if config.apis.remove(name).is_none() {
+        return Err(CliError::Config(format!("API '{}' not found", name)));
     }
 
-    // If removing default, clear it
-    if config.default.as_ref() == Some(&name.to_string()) {
-        config.default = None;
+    // If removing current, switch to another one if available
+    if config.current == name {
+        config.current = config.apis.keys().next()
+            .cloned()
+            .unwrap_or_else(|| "default".to_string());
     }
 
     save_config_file(&path, &config)?;
     Ok(())
 }
 
-/// List all connections
-pub fn list_connections() -> Result<Vec<(String, Connection)>> {
+/// List all APIs
+pub fn list_apis() -> Result<Vec<(String, ApiEntry)>> {
     let path = default_config_path()?;
 
     if !path.exists() {
@@ -202,23 +193,35 @@ pub fn list_connections() -> Result<Vec<(String, Connection)>> {
     }
 
     let config = load_config_file(&path)?;
-    let mut connections: Vec<_> = config.connections.into_iter().collect();
-    connections.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut apis: Vec<_> = config.apis.into_iter().collect();
+    apis.sort_by(|a, b| a.0.cmp(&b.0));
 
-    Ok(connections)
+    Ok(apis)
 }
 
-/// Set default connection
-pub fn set_default_connection(name: &str) -> Result<()> {
+/// Get current API name
+pub fn get_current_api() -> Result<String> {
+    let path = default_config_path()?;
+
+    if !path.exists() {
+        return Err(CliError::Config("Config file not found".to_string()));
+    }
+
+    let config = load_config_file(&path)?;
+    Ok(config.current)
+}
+
+/// Set current API
+pub fn set_current_api(name: &str) -> Result<()> {
     let path = default_config_path()?;
 
     let mut config = load_config_file(&path)?;
 
-    if !config.connections.contains_key(name) {
-        return Err(CliError::Config(format!("Connection '{}' not found", name)));
+    if !config.apis.contains_key(name) {
+        return Err(CliError::Config(format!("API '{}' not found", name)));
     }
 
-    config.default = Some(name.to_string());
+    config.current = name.to_string();
     save_config_file(&path, &config)?;
 
     Ok(())

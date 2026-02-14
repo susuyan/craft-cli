@@ -6,21 +6,17 @@ use std::path::PathBuf;
 #[command(about = "Craft.do API CLI for Agents")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 pub struct Cli {
-    /// API endpoint URL (or CRAFT_API_URL env)
-    #[arg(long, env = "CRAFT_API_URL")]
-    pub url: Option<String>,
+    /// API endpoint URL (or CRAFT_API env)
+    #[arg(long, env = "CRAFT_API")]
+    pub api: Option<String>,
 
-    /// API secret key (or CRAFT_API_KEY env)
-    #[arg(long, env = "CRAFT_API_KEY")]
+    /// API key (or CRAFT_KEY env)
+    #[arg(long, env = "CRAFT_KEY")]
     pub key: Option<String>,
 
     /// Config file path
     #[arg(long)]
     pub config: Option<PathBuf>,
-
-    /// Connection name from config file
-    #[arg(long)]
-    pub conn: Option<String>,
 
     /// Verbose output for debugging
     #[arg(long, short)]
@@ -64,26 +60,27 @@ pub struct ConfigArgs {
 pub enum ConfigAction {
     /// Initialize config file
     Init,
-    /// Add a connection
+    /// Add an API
     Add {
-        /// Connection name
+        /// API name
         name: String,
-        /// API URL
-        url: String,
-        /// Secret key (optional)
+        /// API URL (optional, will prompt if not provided)
+        #[arg(long)]
+        api: Option<String>,
+        /// API key (optional, will prompt if not provided)
         #[arg(long)]
         key: Option<String>,
     },
-    /// Remove a connection
+    /// Remove an API
     Remove {
-        /// Connection name
+        /// API name
         name: String,
     },
-    /// List all connections
+    /// List all APIs
     List,
-    /// Set default connection
-    Default {
-        /// Connection name
+    /// Set current API
+    Use {
+        /// API name
         name: String,
     },
 }

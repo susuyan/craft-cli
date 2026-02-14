@@ -17,52 +17,59 @@ pub async fn handle(action: ConfigAction) -> Result<()> {
             );
             Ok(())
         }
-        ConfigAction::Add { name, url, key } => {
-            config::add_connection(&name, &url, key.as_deref())?;
+        ConfigAction::Add { name, api, key } => {
+            let api = api.ok_or_else(|| {
+                crate::error::CliError::Config("--api is required".to_string())
+            })?;
+            let key = key.ok_or_else(|| {
+                crate::error::CliError::Config("--key is required".to_string())
+            })?;
+            config::add_api(&name, &api, &key)?;
             println!(
                 "{}",
                 json!({
                     "success": true,
-                    "message": format!("Connection '{}' added", name),
+                    "message": format!("API '{}' added", name),
                     "name": name,
-                    "url": url
+                    "api": api
                 })
             );
             Ok(())
         }
         ConfigAction::Remove { name } => {
-            config::remove_connection(&name)?;
+            config::remove_api(&name)?;
             println!(
                 "{}",
                 json!({
                     "success": true,
-                    "message": format!("Connection '{}' removed", name)
+                    "message": format!("API '{}' removed", name)
                 })
             );
             Ok(())
         }
         ConfigAction::List => {
-            let connections = config::list_connections()?;
-            let items: Vec<_> = connections
+            let apis = config::list_apis()?;
+            let current = config::get_current_api().unwrap_or_default();
+            let items: Vec<_> = apis
                 .into_iter()
-                .map(|(name, conn)| {
+                .map(|(name, entry)| {
                     json!({
                         "name": name,
-                        "url": conn.url,
-                        "has_key": conn.secret_key.is_some()
+                        "api": entry.api,
+                        "current": name == current
                     })
                 })
                 .collect();
             println!("{}", json!({ "items": items }));
             Ok(())
         }
-        ConfigAction::Default { name } => {
-            config::set_default_connection(&name)?;
+        ConfigAction::Use { name } => {
+            config::set_current_api(&name)?;
             println!(
                 "{}",
                 json!({
                     "success": true,
-                    "message": format!("'{}' set as default connection", name)
+                    "message": format!("'{}' set as current API", name)
                 })
             );
             Ok(())
